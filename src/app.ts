@@ -1,13 +1,14 @@
 import express from "express";
-import usersRouter from "~routes/users";
+import cors from "cors";
+import dotenv from "dotenv";
+import userRoutes from "~routes/user.routes";
+
+dotenv.config();
 
 const app = express();
-
+app.use(cors());
 app.use(express.json());
-app.use("/users", usersRouter);
 
-app.get("/", (_, res) => {
-  res.send("✅ Supabase API is running!");
-});
+app.use("/users", userRoutes);
 
-export default app;
+export default app
