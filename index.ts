@@ -1,6 +1,7 @@
 // index.ts
 
-import app from "playmap-backend/src/app";
+import app from "src/app";
+
 
 const PORT = 3000;
 

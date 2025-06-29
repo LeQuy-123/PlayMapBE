@@ -27,6 +27,14 @@
     "noPropertyAccessFromIndexSignature": false,
 
     "baseUrl": ".",
-   
+    "paths": {
+      "~routes/*": ["src/routes/*"],
+      "~controllers/*": ["src/controllers/*"],
+      "~middlewares/*": ["src/middlewares/*"],
+      "~config/*": ["src/config/*"],
+      "~models/*": ["src/models/*"],
+      "~services/*": ["src/services/*"],  
+      "~utils/*": ["src/utils/*"],
+    }
   }
 }

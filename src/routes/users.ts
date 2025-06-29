@@ -1,16 +1,16 @@
 // routes/users.ts
 import { Router } from "express";
-import { supabase } from "../supabase";
+import { supabase } from "src/supabase";
 
-const router = Router();
+const usersRouter = Router();
 
-router.get("/", async (_, res) => {
+usersRouter.get("/", async (_, res) => {
     const { data, error } = await supabase.from("users").select("*");
     if (error) {
         res.status(500).json({ error: error.message });
-        return
+        return;
     }
     res.json(data);
 });
 
-export default router;
+export default usersRouter;
