@@ -89,3 +89,40 @@ export const getNearbyUsers = async (req: Request, res: Response) => {
 
     res.status(result.error ? 500 : 200).json(result);
 };
+
+
+
+export const getUserClusters = async (req: Request, res: Response) => {
+    const { lat, lng, radius_km = 5, zoom_level = 12, self_id } = req.query;
+
+    // Validation
+    if (
+        lat == null ||
+        lng == null ||
+        self_id == null ||
+        isNaN(Number(lat)) ||
+        isNaN(Number(lng)) ||
+        isNaN(Number(radius_km)) ||
+        isNaN(Number(zoom_level))
+    ) {
+        res.status(400).json({
+            error: "Missing or invalid query params: lat, lng, zoom_level, self_id",
+        });
+        return
+    }
+
+    const { data, error } = await supabase.rpc("get_user_clusters", {
+        lat: parseFloat(lat as string),
+        lng: parseFloat(lng as string),
+        radius_km: parseFloat(radius_km as string),
+        zoom_level: parseInt(zoom_level as string),
+        _self_id: self_id as string,
+    });
+
+    if (error) {
+        res.status(500).json({ error });
+        return
+    }
+    res.status(200).json({ clusters: data });
+    return
+};

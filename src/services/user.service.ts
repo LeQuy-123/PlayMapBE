@@ -76,3 +76,22 @@ export const fetchNearbyUsers = async (
 
     return { users: data, error };
 };
+
+
+export const fetchNearbyUsersCluster = async (
+    lat: number,
+    lng: number,
+    radius_km: number,
+    zoom_level: number,
+    current_user_id: string
+) => {
+    const { data, error } = await supabase.rpc("get_user_clusters", {
+        lat,
+        lng,
+        radius_km: radius_km || 5,
+        zoom_level: zoom_level || 12,
+        _self_id: current_user_id,
+    });
+
+    return { users: data, error };
+};

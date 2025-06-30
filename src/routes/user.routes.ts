@@ -3,6 +3,7 @@ import {
     registerAnonUser,
     updateLocation,
     getNearbyUsers,
+    getUserClusters,
 } from "~controllers/user.controller";
 
 const userRouter = Router();
@@ -105,6 +106,72 @@ userRouter.post("/location", updateLocation);
  *         description: Missing required query parameters
  */
 userRouter.get("/nearby", getNearbyUsers);
+
+
+/**
+ * @swagger
+ * /users/clusters:
+ *   get:
+ *     summary: Get clusters of nearby users based on map zoom level
+ *     parameters:
+ *       - in: query
+ *         name: lat
+ *         schema:
+ *           type: number
+ *         required: true
+ *         description: Latitude of the current location
+ *       - in: query
+ *         name: lng
+ *         schema:
+ *           type: number
+ *         required: true
+ *         description: Longitude of the current location
+ *       - in: query
+ *         name: radius_km
+ *         schema:
+ *           type: number
+ *           default: 5
+ *         required: false
+ *         description: Radius in kilometers to search for users
+ *       - in: query
+ *         name: zoom_level
+ *         schema:
+ *           type: integer
+ *           default: 12
+ *         required: false
+ *         description: Current map zoom level for clustering
+ *       - in: query
+ *         name: self_id
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         required: true
+ *         description: The UUID of the current user (to exclude from clusters)
+ *     responses:
+ *       200:
+ *         description: List of clustered nearby users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 clusters:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       cluster_lat:
+ *                         type: number
+ *                       cluster_lng:
+ *                         type: number
+ *                       user_count:
+ *                         type: integer
+ *       400:
+ *         description: Missing or invalid parameters
+ *       500:
+ *         description: Server error or Supabase RPC failure
+ */
+userRouter.get("/clusters", getUserClusters);
 
 
 export default userRouter;
