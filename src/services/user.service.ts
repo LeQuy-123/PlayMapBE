@@ -64,9 +64,11 @@ export const updateUserLocation = async (
 export const fetchNearbyUsers = async (
     lat: number,
     lng: number,
-    radius_km: number
+    radius_km: number,
+    current_user_id: string
 ) => {
     const { data, error } = await supabase.rpc("get_nearby_users", {
+        _self_id: current_user_id,
         lat,
         lng,
         radius_km,

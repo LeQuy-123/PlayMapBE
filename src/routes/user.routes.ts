@@ -7,13 +7,104 @@ import {
 
 const userRouter = Router();
 
-// POST /users/anonymous — create anonymous user with name & location
+/**
+ * @swagger
+ * /users/anonymous:
+ *   post:
+ *     summary: Create an anonymous user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - latitude
+ *               - longitude
+ *             properties:
+ *               name:
+ *                 type: string
+ *               latitude:
+ *                 type: number
+ *               longitude:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: User created
+ */
 userRouter.post("/anonymous", registerAnonUser);
 
-// POST /users/location — update user location by ID
+/**
+ * @swagger
+ * /users/location:
+ *   post:
+ *     summary: Update user location by user ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - user_id
+ *               - latitude
+ *               - longitude
+ *             properties:
+ *               user_id:
+ *                 type: string
+ *                 format: uuid
+ *               latitude:
+ *                 type: number
+ *               longitude:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Location updated
+ *       400:
+ *         description: Missing required fields
+ */
 userRouter.post("/location", updateLocation);
 
-// GET /users/nearby?lat=...&lng=...&radius_km=...
+/**
+ * @swagger
+ * /users/nearby:
+ *   get:
+ *     summary: Get users near a given location, excluding the current user
+ *     parameters:
+ *       - in: query
+ *         name: lat
+ *         schema:
+ *           type: number
+ *         required: true
+ *         description: Latitude of the current location
+ *       - in: query
+ *         name: lng
+ *         schema:
+ *           type: number
+ *         required: true
+ *         description: Longitude of the current location
+ *       - in: query
+ *         name: radius_km
+ *         schema:
+ *           type: number
+ *           default: 5
+ *         required: false
+ *         description: Search radius in kilometers
+ *       - in: query
+ *         name: current_user_id
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         required: true
+ *         description: The UUID of the current user to exclude from results
+ *     responses:
+ *       200:
+ *         description: List of nearby users (excluding self)
+ *       400:
+ *         description: Missing required query parameters
+ */
 userRouter.get("/nearby", getNearbyUsers);
+
 
 export default userRouter;
