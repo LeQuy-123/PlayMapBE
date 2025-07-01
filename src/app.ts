@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import userRoutes from "~routes/user.routes";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "~config/swagger";
+import sportRoutes from "~models/sport.routes";
 
 dotenv.config();
 
@@ -16,5 +17,6 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // API routes
 app.use("/users", userRoutes);
+app.use("/sports", sportRoutes);
 
 export default app;

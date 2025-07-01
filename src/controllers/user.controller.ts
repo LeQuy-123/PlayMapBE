@@ -6,7 +6,7 @@ import * as userService from "~services/user.service";
 // POST /users/anonymous
 
 export const registerAnonUser = async (req: Request, res: Response) => {
-    const { name, latitude, longitude } = req.body;
+    const { name, latitude, longitude, main_sport_id } = req.body;
 
     if (!name || latitude == null || longitude == null) {
         res.status(400).json({
@@ -15,31 +15,26 @@ export const registerAnonUser = async (req: Request, res: Response) => {
         return
     }
 
-    const id = randomUUIDv7();
+    const result = await userService.createAnonymousUser(
+        name,
+        latitude,
+        longitude,
+        main_sport_id
+    );
 
-    const { error } = await supabase.rpc("upsert_user", {
-        _id: id,
-        _phone: "",
-        _email: "",
-        _name: name,
-        _lat: latitude,
-        _lng: longitude,
-        _is_anonymous: true,
-    });
-
-    if (error) {
-        res.status(500).json({ error });
+    if (result.error) {
+        res.status(500).json({ error: result.error });
         return
     }
     res.status(200).json({
         user: {
-            id,
+            id: result.user?.id,
             name,
+            is_anonymous: true,
             location: {
                 lat: latitude,
                 lng: longitude,
             },
-            is_anonymous: true,
         },
     });
     return
@@ -66,7 +61,7 @@ export const updateLocation = async (req: Request, res: Response) => {
 
 // GET /users/nearby?lat=...&lng=...&radius_km=...
 export const getNearbyUsers = async (req: Request, res: Response) => {
-    const { lat, lng, radius_km,  current_user_id } = req.query;
+    const { lat, lng, radius_km, current_user_id } = req.query;
 
     if (!lat || !lng) {
         res.status(400).json({
@@ -90,8 +85,6 @@ export const getNearbyUsers = async (req: Request, res: Response) => {
     res.status(result.error ? 500 : 200).json(result);
 };
 
-
-
 export const getUserClusters = async (req: Request, res: Response) => {
     const { lat, lng, radius_km = 5, zoom_level = 12, self_id } = req.query;
 
@@ -108,7 +101,7 @@ export const getUserClusters = async (req: Request, res: Response) => {
         res.status(400).json({
             error: "Missing or invalid query params: lat, lng, zoom_level, self_id",
         });
-        return
+        return;
     }
 
     const { data, error } = await supabase.rpc("get_user_clusters", {
@@ -121,8 +114,8 @@ export const getUserClusters = async (req: Request, res: Response) => {
 
     if (error) {
         res.status(500).json({ error });
-        return
+        return;
     }
     res.status(200).json({ clusters: data });
-    return
+    return;
 };

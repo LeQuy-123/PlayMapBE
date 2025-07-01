@@ -4,40 +4,44 @@ import { supabase } from "src/supabase";
 export const createAnonymousUser = async (
     name: string,
     lat: number,
-    lng: number
+    lng: number,
+    main_sport_id: string
 ) => {
     const email = `anon-${randomUUID()}@playmap.local`;
     const password = randomUUID();
 
-    // Step 1: Create the anonymous user in Supabase Auth
     const { data, error } = await supabase.auth.admin.createUser({
         email,
         password,
         email_confirm: true,
-        user_metadata: {
-            is_anonymous: true,
-            display_name: name,
-        },
+        user_metadata: { is_anonymous: true },
     });
 
     const user = data?.user;
 
-    // Step 2: Insert user into 'users' table via RPC with location
-    if (user?.id) {
-        const { error: upsertError } = await supabase.rpc("upsert_user", {
+    if (!user || error) return { error, user: null };
+
+    // Upsert user row + insert sport
+    const [upsertErr, sportErr] = await Promise.all([
+        supabase.rpc("upsert_user", {
             _id: user.id,
-            _phone: "",
+            _email: email,
+            _phone: null,
+            _name: name,
             _lat: lat,
             _lng: lng,
             _is_anonymous: true,
-        });
+        }),
+        supabase.from("user_sports").insert([
+            {
+                user_id: user.id,
+                sport_id: main_sport_id,
+                is_main: true,
+            },
+        ]),
+    ]);
 
-        if (upsertError) {
-            return { user, error: upsertError };
-        }
-    }
-
-    return { user, error };
+    return { user, error: upsertErr.error || sportErr.error };
 };
 
 /**
@@ -95,3 +99,4 @@ export const fetchNearbyUsersCluster = async (
 
     return { users: data, error };
 };
+
