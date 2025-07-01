@@ -1,5 +1,9 @@
 import { Router } from "express";
-import { getSports, addSportToUser } from "~controllers/sport.controller";
+import {
+    getSports,
+    addSportToUser,
+    addMainSportToUser,
+} from "~controllers/sport.controller";
 
 const sportRoutes = Router();
 
@@ -52,4 +56,56 @@ sportRoutes.get("/", getSports); // GET /sports
  */
 sportRoutes.post("/user", addSportToUser); // POST /sports/user
 
+/**
+ * @swagger
+ * /sports/user/main:
+ *   post:
+ *     summary: Set the main sport for a user and return all sports
+ *     tags: [Sports]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - user_id
+ *               - sport_id
+ *             properties:
+ *               user_id:
+ *                 type: string
+ *                 format: uuid
+ *               sport_id:
+ *                 type: string
+ *                 format: uuid
+ *     responses:
+ *       200:
+ *         description: Main sport updated and full list returned
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 sports:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       sport_id:
+ *                         type: string
+ *                       is_main:
+ *                         type: boolean
+ *                       sports:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *       400:
+ *         description: Missing user_id or sport_id
+ *       500:
+ *         description: Supabase error
+ */
+sportRoutes.post("/user/main", addMainSportToUser);
 export default sportRoutes;
