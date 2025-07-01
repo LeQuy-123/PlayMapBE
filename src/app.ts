@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import userRoutes from "~routes/user.routes";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "~config/swagger";
-import sportRoutes from "~models/sport.routes";
+import sportRoutes from "~routes/sport.routes";
 
 dotenv.config();
 
