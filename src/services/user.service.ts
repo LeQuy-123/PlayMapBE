@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { supabase } from "src/supabase";
 
+
 export const createAnonymousUser = async (
     name: string,
     lat: number,
@@ -21,7 +22,6 @@ export const createAnonymousUser = async (
 
     if (!user || error) return { error, user: null };
 
-    // Upsert user row + insert sport
     const [upsertErr, sportErr] = await Promise.all([
         supabase.rpc("upsert_user", {
             _id: user.id,

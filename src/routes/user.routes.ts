@@ -7,7 +7,6 @@ import {
 } from "~controllers/user.controller";
 
 const userRouter = Router();
-
 /**
  * @swagger
  * /users/anonymous:
@@ -55,6 +54,8 @@ const userRouter = Router();
  *                       type: string
  *                     is_anonymous:
  *                       type: boolean
+ *                     token:
+ *                       type: string
  *                     location:
  *                       type: object
  *                       properties:
@@ -68,35 +69,38 @@ const userRouter = Router();
  *         description: Server or Supabase error
  */
 userRouter.post("/anonymous", registerAnonUser);
-
 /**
  * @swagger
  * /users/location:
  *   post:
- *     summary: Update user location by user ID
+ *     summary: Update a user's current location (anon or real)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - user_id
- *               - latitude
- *               - longitude
+ *             required: [user_id, latitude, longitude]
  *             properties:
  *               user_id:
  *                 type: string
- *                 format: uuid
+ *                 example: "aa82f60c-d25d-4b6e-bf7f-2642e03a2d87"
  *               latitude:
  *                 type: number
+ *                 example: 10.763
  *               longitude:
  *                 type: number
+ *                 example: 106.682
  *     responses:
  *       200:
- *         description: Location updated
+ *         description: Location updated successfully
  *       400:
  *         description: Missing required fields
+ *       401:
+ *         description: Unauthorized
  */
 userRouter.post("/location", updateLocation);
 
@@ -104,105 +108,88 @@ userRouter.post("/location", updateLocation);
  * @swagger
  * /users/nearby:
  *   get:
- *     summary: Get users near a given location, excluding the current user
+ *     summary: Get a list of nearby users within a radius
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: lat
+ *         required: true
  *         schema:
  *           type: number
- *         required: true
- *         description: Latitude of the current location
+ *         example: 10.762622
  *       - in: query
  *         name: lng
+ *         required: true
  *         schema:
  *           type: number
- *         required: true
- *         description: Longitude of the current location
+ *         example: 106.660172
  *       - in: query
  *         name: radius_km
  *         schema:
  *           type: number
- *           default: 5
- *         required: false
- *         description: Search radius in kilometers
+ *         example: 5
  *       - in: query
  *         name: current_user_id
+ *         required: true
  *         schema:
  *           type: string
- *           format: uuid
- *         required: true
- *         description: The UUID of the current user to exclude from results
+ *         example: "aa82f60c-d25d-4b6e-bf7f-2642e03a2d87"
  *     responses:
  *       200:
- *         description: List of nearby users (excluding self)
+ *         description: List of nearby users
  *       400:
  *         description: Missing required query parameters
+ *       401:
+ *         description: Unauthorized
  */
 userRouter.get("/nearby", getNearbyUsers);
-
 
 /**
  * @swagger
  * /users/clusters:
  *   get:
- *     summary: Get clusters of nearby users based on map zoom level
+ *     summary: Get clustered user locations for map display
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: lat
+ *         required: true
  *         schema:
  *           type: number
- *         required: true
- *         description: Latitude of the current location
+ *         example: 10.762622
  *       - in: query
  *         name: lng
+ *         required: true
  *         schema:
  *           type: number
- *         required: true
- *         description: Longitude of the current location
+ *         example: 106.660172
  *       - in: query
  *         name: radius_km
  *         schema:
  *           type: number
- *           default: 5
- *         required: false
- *         description: Radius in kilometers to search for users
+ *         example: 5
  *       - in: query
  *         name: zoom_level
  *         schema:
- *           type: integer
- *           default: 12
- *         required: false
- *         description: Current map zoom level for clustering
+ *           type: number
+ *         example: 12
  *       - in: query
  *         name: self_id
+ *         required: true
  *         schema:
  *           type: string
- *           format: uuid
- *         required: true
- *         description: The UUID of the current user (to exclude from clusters)
+ *         example: "aa82f60c-d25d-4b6e-bf7f-2642e03a2d87"
  *     responses:
  *       200:
- *         description: List of clustered nearby users
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 clusters:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       cluster_lat:
- *                         type: number
- *                       cluster_lng:
- *                         type: number
- *                       user_count:
- *                         type: integer
+ *         description: Clustered data returned
  *       400:
- *         description: Missing or invalid parameters
- *       500:
- *         description: Server error or Supabase RPC failure
+ *         description: Missing or invalid query params
+ *       401:
+ *         description: Unauthorized
  */
 userRouter.get("/clusters", getUserClusters);
 

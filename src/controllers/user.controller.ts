@@ -2,8 +2,10 @@ import { randomUUIDv7 } from "bun";
 import { type Request, type Response } from "express";
 import { supabase } from "src/supabase";
 import * as userService from "~services/user.service";
+import { generateAnonAccessToken, generateAnonRefreshToken } from "~utils/jwt";
 
 // POST /users/anonymous
+
 
 export const registerAnonUser = async (req: Request, res: Response) => {
     const { name, latitude, longitude, main_sport_id } = req.body;
@@ -26,18 +28,33 @@ export const registerAnonUser = async (req: Request, res: Response) => {
         res.status(500).json({ error: result.error });
         return
     }
-    res.status(200).json({
-        user: {
-            id: result.user?.id,
-            name,
-            is_anonymous: true,
-            location: {
-                lat: latitude,
-                lng: longitude,
+    if (!result.user?.id) {
+        res.status(500).json({ error: result.error });
+        return;
+    }
+    const accessToken = generateAnonAccessToken(result.user.id);
+    const refreshToken = generateAnonRefreshToken(result.user.id);
+
+    res.cookie("anon_refresh_token", refreshToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30d
+    })
+        .status(200)
+        .json({
+            user: {
+                id: result.user.id,
+                name,
+                token: accessToken,
+                refreshToken: refreshToken,
+                is_anonymous: true,
+                location: {
+                    lat: latitude,
+                    lng: longitude,
+                },
             },
-        },
-    });
-    return
+        });
 };
 // POST /users/location
 export const updateLocation = async (req: Request, res: Response) => {
