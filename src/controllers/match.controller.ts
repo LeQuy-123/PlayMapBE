@@ -2,13 +2,17 @@ import { type Request, type Response } from "express";
 import * as matchService from "~services/match.service";
 
 export const getUserMatchesController = async (req: Request, res: Response) => {
-    const user_id = req.params.id;
-    if (!user_id ) {
-        res.status(400).json({ error: "Missing user_id" });
-        return;
+    const user = (req as any).user; // comes from JWT middleware
+    if (!user?.id) {
+        res.status(401).json({ error: "Unauthorized" });
+        return
     }
-    const { matches, error } = await matchService.getUserMatchHistory(user_id);
-    res.status(error ? 500 : 200).json(error ? { error } : { matches });
+    const { matches, error } = await matchService.getUserMatchHistory(user.id);
+    if (error) {
+        res.status(500).json({ error });
+        return
+    }
+    res.status(200).json({ matches });
     return
 };
 

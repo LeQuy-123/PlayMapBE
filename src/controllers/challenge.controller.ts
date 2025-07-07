@@ -1,23 +1,32 @@
 import { type Request, type Response } from "express";
 import * as challengeService from "~services/challenge.service";
-
 export const createChallengeController = async (
     req: Request,
     res: Response
 ) => {
-    const { from_user_id, to_user_id, sport_id } = req.body;
+    const { to_user_id, sport_id } = req.body;
+    const from_user_id = (req as any).user?.id;
 
     if (!from_user_id || !to_user_id || !sport_id) {
-        res.status(400).json({ error: "Missing required fields" });
-        return
+        res.status(400).json({ error: "Missing fields" });
+        return;
     }
 
-    const { challenge, error } = await challengeService.createChallenge(
+    if (from_user_id === to_user_id) {
+        res.status(400).json({ error: "Cannot challenge yourself" });
+        return;
+    }
+
+    const result = await challengeService.createChallenge(
         from_user_id,
         to_user_id,
         sport_id
     );
-    res.status(error ? 500 : 200).json(error ? { error } : { challenge });
+    if (result.error) {
+        res.status(500).json({ error: result.error });
+        return;
+    }
+    res.status(200).json({ challenge: result.challenge });
     return
 };
 
@@ -27,19 +36,28 @@ export const respondToChallengeController = async (
 ) => {
     const challenge_id = req.params.id;
     const { response } = req.body;
+    const user_id = (req as any).user?.id;
 
-    if (!["accepted", "rejected"].includes(response)) {
-        res.status(400).json({ error: "Invalid response value" });
+    if (!challenge_id || !response || !user_id) {
+        res.status(400).json({ error: "Missing required fields" });
         return
     }
-    if (!challenge_id) {
-        res.status(400).json({ error: "Missing challenge_id fields" });
-        return;
-    }
-    const { challenge, error } = await challengeService.respondToChallenge(
+
+    const result = await challengeService.respondToChallenge(
         challenge_id,
-        response as "accepted" | "rejected"
+        user_id,
+        response
     );
-    res.status(error ? 500 : 200).json(error ? { error } : { challenge });
+
+    if (result.error === "Not your challenge") {
+        res.status(403).json({ error: result.error });
+        return
+    }
+
+    if (result.error) {
+        res.status(500).json({ error: result.error });
+        return
+    }
+    res.status(200).json({ message: "Challenge updated" });
     return
 };

@@ -37,9 +37,30 @@ export const createChallenge = async (
 
 export const respondToChallenge = async (
     challenge_id: string,
+    user_id: string, // authenticated user (should be `to_user_id`)
     response: "accepted" | "rejected"
 ) => {
-    const { data: updated, error } = await supabase
+    // 1. Fetch challenge and verify the user is the target
+    const { data: challenge, error: fetchError } = await supabase
+        .from("challenges")
+        .select("*")
+        .eq("id", challenge_id)
+        .single();
+
+    if (fetchError) {
+        return { error: fetchError.message };
+    }
+
+    if (!challenge) {
+        return { error: "Challenge not found" };
+    }
+
+    if (challenge.to_user_id !== user_id) {
+        return { error: "Not your challenge" };
+    }
+
+    // 2. Update the challenge with the response
+    const { data: updated, error: updateError } = await supabase
         .from("challenges")
         .update({
             status: response,
@@ -49,18 +70,30 @@ export const respondToChallenge = async (
         .select("*")
         .single();
 
-    if (response === "accepted" && !error) {
+    if (updateError) {
+        return { error: updateError.message };
+    }
+
+    // 3. If accepted, create a match
+    if (response === "accepted") {
         const match_id = randomUUID();
-        await supabase.from("matches").insert({
+
+        const { error: matchError } = await supabase.from("matches").insert({
             id: match_id,
             sport_id: updated.sport_id,
         });
 
-        await supabase.from("match_participants").insert([
-            { match_id, user_id: updated.from_user_id },
-            { match_id, user_id: updated.to_user_id },
-        ]);
+        const { error: participantsError } = await supabase
+            .from("match_participants")
+            .insert([
+                { match_id, user_id: updated.from_user_id },
+                { match_id, user_id: updated.to_user_id },
+            ]);
+
+        if (matchError || participantsError) {
+            return { error: matchError?.message || participantsError?.message };
+        }
     }
 
-    return { challenge: updated, error };
+    return { challenge: updated, error: null };
 };
