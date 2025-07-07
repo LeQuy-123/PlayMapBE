@@ -56,6 +56,8 @@ const userRouter = Router();
  *                       type: boolean
  *                     token:
  *                       type: string
+*                      refreshToken:
+ *                       type: string
  *                     location:
  *                       type: object
  *                       properties:
