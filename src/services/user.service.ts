@@ -1,17 +1,12 @@
 import { randomUUID } from "crypto";
 import { supabase } from "src/supabase";
 
-
 export const createAnonymousUser = async (
     name: string,
     lat: number,
     lng: number,
     main_sport_id?: string
 ) => {
-    if (!main_sport_id) {
-        return { user: null, error: "Main sport is required." };
-    }
-
     const email = `anon-${randomUUID()}@playmap.local`;
     const password = randomUUID();
 
@@ -23,34 +18,52 @@ export const createAnonymousUser = async (
     });
 
     const user = data?.user;
+    if (!user || error)
+        return { user: null, error: error?.message || "User creation failed" };
 
-    if (!user || error) return { error, user: null };
+    // Step 1: Upsert user info
+    const { error: upsertError } = await supabase.rpc("upsert_user", {
+        _id: user.id,
+        _email: email,
+        _phone: null,
+        _name: name,
+        _lat: lat,
+        _lng: lng,
+        _is_anonymous: true,
+    });
 
-    const [upsertErr, sportErr] = await Promise.all([
-        supabase.rpc("upsert_user", {
-            _id: user.id,
-            _email: email,
-            _phone: null,
-            _name: name,
-            _lat: lat,
-            _lng: lng,
-            _is_anonymous: true,
-        }),
-        main_sport_id
-            ? supabase.from("user_sports").insert([
+    if (upsertError) {
+        // Cleanup user if upsert fails
+        await supabase.auth.admin.deleteUser(user.id);
+        return {
+            user: null,
+            error: upsertError.message || "User profile upsert failed",
+        };
+    }
+
+    // Step 2: Insert main sport (if any)
+    if (main_sport_id) {
+        const { error: sportInsertError } = await supabase
+            .from("user_sports")
+            .insert([
                 {
                     user_id: user.id,
                     sport_id: main_sport_id,
                     is_main: true,
                 },
-            ])
-            : Promise.resolve({ error: null }), // safe fallback
-    ]);
+            ]);
 
-    return {
-        user,
-        error: upsertErr.error || sportErr.error || null,
-    };
+        if (sportInsertError) {
+            // Cleanup user if sport insert fails
+            await supabase.auth.admin.deleteUser(user.id);
+            return {
+                user: null,
+                error: sportInsertError.message || "Failed to add user sport",
+            };
+        }
+    }
+
+    return { user, error: null };
 };
 
 /**
