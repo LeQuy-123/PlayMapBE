@@ -6,8 +6,12 @@ export const createAnonymousUser = async (
     name: string,
     lat: number,
     lng: number,
-    main_sport_id: string
+    main_sport_id?: string
 ) => {
+    if (!main_sport_id) {
+        return { user: null, error: "Main sport is required." };
+    }
+
     const email = `anon-${randomUUID()}@playmap.local`;
     const password = randomUUID();
 
@@ -32,16 +36,21 @@ export const createAnonymousUser = async (
             _lng: lng,
             _is_anonymous: true,
         }),
-        supabase.from("user_sports").insert([
-            {
-                user_id: user.id,
-                sport_id: main_sport_id,
-                is_main: true,
-            },
-        ]),
+        main_sport_id
+            ? supabase.from("user_sports").insert([
+                {
+                    user_id: user.id,
+                    sport_id: main_sport_id,
+                    is_main: true,
+                },
+            ])
+            : Promise.resolve({ error: null }), // safe fallback
     ]);
 
-    return { user, error: upsertErr.error || sportErr.error };
+    return {
+        user,
+        error: upsertErr.error || sportErr.error || null,
+    };
 };
 
 /**
@@ -81,7 +90,6 @@ export const fetchNearbyUsers = async (
     return { users: data, error };
 };
 
-
 export const fetchNearbyUsersCluster = async (
     lat: number,
     lng: number,
@@ -99,4 +107,3 @@ export const fetchNearbyUsersCluster = async (
 
     return { users: data, error };
 };
-
