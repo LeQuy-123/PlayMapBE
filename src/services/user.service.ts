@@ -6,7 +6,10 @@ export const createAnonymousUser = async (
     lat: number,
     lng: number,
     main_sport_id?: string
-) => {
+): Promise<{
+    user: (typeof user & { main_sport?: { id: string; name: string } }) | null;
+    error: string | null;
+}> => {
     const email = `anon-${randomUUID()}@playmap.local`;
     const password = randomUUID();
 
@@ -18,8 +21,9 @@ export const createAnonymousUser = async (
     });
 
     const user = data?.user;
-    if (!user || error)
+    if (!user || error) {
         return { user: null, error: error?.message || "User creation failed" };
+    }
 
     // Step 1: Upsert user info
     const { error: upsertError } = await supabase.rpc("upsert_user", {
@@ -33,7 +37,6 @@ export const createAnonymousUser = async (
     });
 
     if (upsertError) {
-        // Cleanup user if upsert fails
         await supabase.auth.admin.deleteUser(user.id);
         return {
             user: null,
@@ -41,7 +44,9 @@ export const createAnonymousUser = async (
         };
     }
 
-    // Step 2: Insert main sport (if any)
+    let main_sport: { id: string; name: string } | undefined = undefined;
+
+    // Step 2: Insert and fetch main sport
     if (main_sport_id) {
         const { error: sportInsertError } = await supabase
             .from("user_sports")
@@ -54,17 +59,37 @@ export const createAnonymousUser = async (
             ]);
 
         if (sportInsertError) {
-            // Cleanup user if sport insert fails
             await supabase.auth.admin.deleteUser(user.id);
             return {
                 user: null,
                 error: sportInsertError.message || "Failed to add user sport",
             };
         }
+
+        // Fetch sport name
+        const { data: sportData, error: sportFetchError } = await supabase
+            .from("sports")
+            .select("id, name")
+            .eq("id", main_sport_id)
+            .single();
+
+        if (!sportFetchError && sportData) {
+            main_sport = {
+                id: sportData.id,
+                name: sportData.name,
+            };
+        }
     }
 
-    return { user, error: null };
+    return {
+        user: {
+            ...user,
+            main_sport,
+        },
+        error: null,
+    };
 };
+
 
 /**
  * Calls Supabase RPC 'upsert_user' to insert or update user location, phone, and anonymous flag

@@ -6,15 +6,13 @@ import { generateAnonAccessToken, generateAnonRefreshToken } from "~utils/jwt";
 
 // POST /users/anonymous
 
-
 export const registerAnonUser = async (req: Request, res: Response) => {
     const { name, latitude, longitude, main_sport_id } = req.body;
 
     if (!name || latitude == null || longitude == null) {
-        res.status(400).json({
+        return res.status(400).json({
             error: "Missing required fields: name, latitude, longitude",
         });
-        return
     }
 
     const result = await userService.createAnonymousUser(
@@ -25,37 +23,45 @@ export const registerAnonUser = async (req: Request, res: Response) => {
     );
 
     if (result.error) {
-        res.status(500).json({ error: result.error });
-        return
+        return res.status(500).json({ error: result.error });
     }
-    if (!result.user?.id) {
-        res.status(500).json({ error: result.error });
-        return;
+
+    const user = result.user;
+    if (!user?.id) {
+        return res.status(500).json({ error: "Invalid user returned" });
     }
-    const accessToken = generateAnonAccessToken(result.user.id);
-    const refreshToken = generateAnonRefreshToken(result.user.id);
+
+    const accessToken = generateAnonAccessToken(user.id);
+    const refreshToken = generateAnonRefreshToken(user.id);
 
     res.cookie("anon_refresh_token", refreshToken, {
         httpOnly: true,
         secure: true,
         sameSite: "strict",
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30d
-    })
-        .status(200)
-        .json({
-            user: {
-                id: result.user.id,
-                name,
-                token: accessToken,
-                refreshToken: refreshToken,
-                is_anonymous: true,
-                location: {
-                    lat: latitude,
-                    lng: longitude,
-                },
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    });
+
+    return res.status(200).json({
+        user: {
+            id: user.id,
+            name,
+            token: accessToken,
+            refreshToken,
+            is_anonymous: true,
+            location: {
+                lat: latitude,
+                lng: longitude,
             },
-        });
+            ...(user.main_sport && {
+                mainSport: {
+                    id: user.main_sport.id,
+                    name: user.main_sport.name,
+                },
+            }),
+        },
+    });
 };
+
 // POST /users/location
 export const updateLocation = async (req: Request, res: Response) => {
     const { user_id, latitude, longitude } = req.body;
