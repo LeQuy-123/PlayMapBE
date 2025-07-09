@@ -4,7 +4,9 @@ import {
     updateLocation,
     getNearbyUsers,
     getUserClusters,
+    updateLastActive,
 } from "~controllers/user.controller";
+import { requireAnonAuth } from "~middlewares/auth.middleware";
 
 const userRouter = Router();
 /**
@@ -104,7 +106,7 @@ userRouter.post("/anonymous", registerAnonUser);
  *       401:
  *         description: Unauthorized
  */
-userRouter.post("/location", updateLocation);
+userRouter.post("/location",requireAnonAuth, updateLocation);
 
 /**
  * @swagger
@@ -146,7 +148,7 @@ userRouter.post("/location", updateLocation);
  *       401:
  *         description: Unauthorized
  */
-userRouter.get("/nearby", getNearbyUsers);
+userRouter.get("/nearby",requireAnonAuth, getNearbyUsers);
 
 /**
  * @swagger
@@ -193,7 +195,36 @@ userRouter.get("/nearby", getNearbyUsers);
  *       401:
  *         description: Unauthorized
  */
-userRouter.get("/clusters", getUserClusters);
+userRouter.get("/clusters",requireAnonAuth, getUserClusters);
 
+/**
+ * @swagger
+ * /users/ping:
+ *   post:
+ *     summary: Update last_active timestamp when app is opened
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully updated last active time
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: Last active updated
+ *       401:
+ *         description: Unauthorized or missing token
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Unauthorized
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Failed to update last active
+ */
+userRouter.post("/ping", requireAnonAuth, updateLastActive);
 
 export default userRouter;

@@ -10,9 +10,10 @@ export const registerAnonUser = async (req: Request, res: Response) => {
     const { name, latitude, longitude, main_sport_id } = req.body;
 
     if (!name || latitude == null || longitude == null) {
-        return res.status(400).json({
+        res.status(400).json({
             error: "Missing required fields: name, latitude, longitude",
         });
+        return;
     }
 
     const result = await userService.createAnonymousUser(
@@ -23,12 +24,14 @@ export const registerAnonUser = async (req: Request, res: Response) => {
     );
 
     if (result.error) {
-        return res.status(500).json({ error: result.error });
+        res.status(500).json({ error: result.error });
+        return;
     }
 
     const user = result.user;
     if (!user?.id) {
-        return res.status(500).json({ error: "Invalid user returned" });
+        res.status(500).json({ error: "Invalid user returned" });
+        return;
     }
 
     const accessToken = generateAnonAccessToken(user.id);
@@ -40,8 +43,7 @@ export const registerAnonUser = async (req: Request, res: Response) => {
         sameSite: "strict",
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
-
-    return res.status(200).json({
+    res.status(200).json({
         user: {
             id: user.id,
             name,
@@ -60,31 +62,32 @@ export const registerAnonUser = async (req: Request, res: Response) => {
             }),
         },
     });
+    return;
 };
-
 // POST /users/location
 export const updateLocation = async (req: Request, res: Response) => {
-    const { user_id, latitude, longitude } = req.body;
+    const { latitude, longitude } = req.body;
+    const userId = req.user?.id;
 
-    if (!user_id || latitude == null || longitude == null) {
+    if (!userId || latitude == null || longitude == null) {
         res.status(400).json({
-            error: "Missing required fields: user_id, latitude, longitude",
+            error: "Missing required fields: latitude, longitude",
         });
         return;
     }
 
     const result = await userService.updateUserLocation(
-        user_id,
+        userId,
         latitude,
         longitude
     );
 
     res.status(result.error ? 500 : 200).json(result);
 };
-
 // GET /users/nearby?lat=...&lng=...&radius_km=...
 export const getNearbyUsers = async (req: Request, res: Response) => {
-    const { lat, lng, radius_km, current_user_id } = req.query;
+    const { lat, lng, radius_km = "5" } = req.query;
+    const userId = req.user?.id;
 
     if (!lat || !lng) {
         res.status(400).json({
@@ -92,39 +95,39 @@ export const getNearbyUsers = async (req: Request, res: Response) => {
         });
         return;
     }
-    if (!current_user_id) {
-        res.status(400).json({
-            error: "Missing required query params: current_user_id",
-        });
+
+    if (!userId) {
+        res.status(401).json({ error: "Unauthorized" });
         return;
     }
+
     const result = await userService.fetchNearbyUsers(
         parseFloat(lat as string),
         parseFloat(lng as string),
-        parseFloat(radius_km as string) || 5,
-        String(current_user_id)
+        parseFloat(radius_km as string),
+        String(userId)
     );
 
     res.status(result.error ? 500 : 200).json(result);
 };
-
+// GET /users/clusters?lat=...&lng=...&radius_km=...&zoom_level=...
 export const getUserClusters = async (req: Request, res: Response) => {
-    const { lat, lng, radius_km = 5, zoom_level = 12, self_id } = req.query;
+    const { lat, lng, radius_km = "5", zoom_level = "12" } = req.query;
+    const userId = req.user?.id;
 
-    // Validation
     if (
-        lat == null ||
-        lng == null ||
-        self_id == null ||
+        !lat ||
+        !lng ||
+        !userId ||
         isNaN(Number(lat)) ||
         isNaN(Number(lng)) ||
         isNaN(Number(radius_km)) ||
         isNaN(Number(zoom_level))
     ) {
         res.status(400).json({
-            error: "Missing or invalid query params: lat, lng, zoom_level, self_id",
+            error: "Missing or invalid query params: lat, lng, radius_km, zoom_level",
         });
-        return;
+        return
     }
 
     const { data, error } = await supabase.rpc("get_user_clusters", {
@@ -132,13 +135,34 @@ export const getUserClusters = async (req: Request, res: Response) => {
         lng: parseFloat(lng as string),
         radius_km: parseFloat(radius_km as string),
         zoom_level: parseInt(zoom_level as string),
-        _self_id: self_id as string,
+        _self_id: userId,
     });
 
     if (error) {
         res.status(500).json({ error });
-        return;
+        return
     }
     res.status(200).json({ clusters: data });
-    return;
+    return
+};
+export const updateLastActive = async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+
+        const { error } = await userService.updateLastActive(userId);
+
+        if (error) {
+            res.status(500).json({ error: error.message });
+            return;
+        }
+        res.status(200).json({ message: "Last active updated" });
+        return;
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+        return;
+    }
 };

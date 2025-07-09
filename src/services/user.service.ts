@@ -145,3 +145,13 @@ export const fetchNearbyUsersCluster = async (
 
     return { users: data, error };
 };
+
+
+export const updateLastActive = async (userId: string) => {
+    const { error } = await supabase
+        .from("users")
+        .update({ last_active: new Date().toISOString() })
+        .eq("id", userId);
+
+    return { error };
+};
