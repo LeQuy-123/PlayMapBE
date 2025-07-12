@@ -14,6 +14,20 @@ export const swaggerOptions = {
                 url: "https://playmapbe.onrender.com",
             },
         ],
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: "http",
+                    scheme: "bearer",
+                    bearerFormat: "JWT", // optional but recommended
+                },
+            },
+        },
+        security: [
+            {
+                bearerAuth: [],
+            },
+        ],
     },
     apis: ["src/routes/*.ts", "src/controllers/*.ts"], // adjust based on your paths
 };
