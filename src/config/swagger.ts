@@ -11,7 +11,7 @@ export const swaggerOptions = {
         },
         servers: [
             {
-                url: "http://localhost:3000",
+                url: "https://playmapbe.onrender.com",
             },
         ],
     },

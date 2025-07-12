@@ -134,12 +134,6 @@ userRouter.post("/location",requireAnonAuth, updateLocation);
  *         schema:
  *           type: number
  *         example: 5
- *       - in: query
- *         name: current_user_id
- *         required: true
- *         schema:
- *           type: string
- *         example: "aa82f60c-d25d-4b6e-bf7f-2642e03a2d87"
  *     responses:
  *       200:
  *         description: List of nearby users
